@@ -1,0 +1,126 @@
+# Global settings for the questionnaire
+title = "Commander Deck Strength Questionnaire"
+subtitle = "A tool to help gauge the power level of your EDH deck."
+
+# Tier definitions: minScore, label, and display color
+[[tiers]]
+  minScore = 0
+  label = "Casual"
+  color = "#4caf50"
+
+[[tiers]]
+  minScore = 15
+  label = "Focused"
+  color = "#ffc107"
+
+[[tiers]]
+  minScore = 30
+  label = "Optimized"
+  color = "#ff9800"
+
+[[tiers]]
+  minScore = 50
+  label = "Competitive (cEDH)"
+  color = "#f44336"
+
+
+# Category definitions for the 'Wrapped' results graphic
+[[categories]]
+  tag = "tutors"
+  label = "Tutor Density"
+  icon = "🔍"
+
+[[categories]]
+  tag = "combos"
+  label = "Combo Potential"
+  icon = "🔄"
+
+[[categories]]
+  tag = "fast_mana"
+  label = "Mana Acceleration"
+  icon = "⚡"
+
+[[categories]]
+  tag = "stax"
+  label = "Stax/Control"
+  icon = "⚖️"
+
+[[categories]]
+  tag = "interaction"
+  label = "Interaction"
+  icon = "🛡️"
+  
+[[categories]]
+  tag = "extra_turns"
+  label = "Extra Turns"
+  icon = "⏳"
+
+
+# --- Questions ---
+
+[[questions]]
+  id = "tutors"
+  type = "count"
+  name = "Tutors"
+  prompt = "How many tutor effects are in the deck?"
+  description = "Count any card that lets you search your library for a specific card or card type."
+  scoring.weight_per = 1.5
+  scoring.cap = 15 # Optional: cap the contribution of this question
+  tags = ["tutors"]
+
+[[questions]]
+  id = "combos"
+  type = "count"
+  name = "Combos"
+  prompt = "How many distinct combos can the deck assemble?"
+  description = "A combo is a set of cards that can win the game on the spot or create a deterministic lock."
+  scoring.weight_per = 3
+  tags = ["combos"]
+
+[[questions]]
+  id = "combo_pieces"
+  type = "multiple"
+  name = "Combo Size"
+  prompt = "What is the typical number of cards required for your main combos?"
+  scoring.options = [
+    { label = "2 cards", value = 6 },
+    { label = "3 cards", value = 4 },
+    { label = "4+ cards", value = 2 },
+    { label = "No specific combos", value = 0 }
+  ]
+  tags = ["combos"]
+
+[[questions]]
+  id = "fast_mana"
+  type = "count"
+  name = "Fast Mana"
+  prompt = "How many 'fast mana' sources do you run?"
+  description = "e.g., Mana Crypt, Sol Ring, Mana Vault, Chrome Mox, Mox Diamond, Grim Monolith. (<=2 mana, produces >=1 immediately)."
+  scoring.weight_per = 2
+  tags = ["fast_mana"]
+  
+[[questions]]
+  id = "free_interaction"
+  type = "count"
+  name = "Free Interaction"
+  prompt = "How many 'free' or alternate-cost interaction spells are in the deck?"
+  description = "e.g., Force of Will, Force of Negation, Deflecting Swat, Fierce Guardianship."
+  scoring.weight_per = 2
+  tags = ["interaction"]
+
+[[questions]]
+  id = "stax"
+  type = "toggle"
+  name = "Stax Pieces"
+  prompt = "Does the deck run stax, prison, or resource denial pieces?"
+  description = "e.g., Rule of Law, Collector Ouphe, Drannith Magistrate, Winter Orb."
+  scoring.weight = 5
+  tags = ["stax"]
+
+[[questions]]
+  id = "extra_turns"
+  type = "toggle"
+  name = "Extra Turn Loops"
+  prompt = "Does the deck contain loops that can generate infinite or near-infinite turns?"
+  scoring.weight = 6
+  tags = ["extra_turns"]

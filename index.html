@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commander Deck Strength Questionnaire</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>">
+</head>
+<body>
+    <header>
+        <h1 id="main-title"></h1>
+        <p id="main-subtitle"></p>
+    </header>
+
+    <main>
+        <form id="questionnaire-form"></form>
+        
+        <div class="controls">
+            <button id="view-results-btn" type="button">View Results</button>
+            <button id="reset-btn" type="button">Reset</button>
+            <button id="share-btn" type="button">Share</button>
+        </div>
+
+        <section id="results-section" class="hidden">
+            <h2>Results</h2>
+            <div id="results-summary">
+                <div id="score-container">
+                    <span id="total-score">0</span>
+                    <span id="tier-label"></span>
+                </div>
+            </div>
+
+            <div id="wrapped-graphic">
+                <h3>Your Deck Profile</h3>
+                <div id="wrapped-categories"></div>
+            </div>
+
+            <details>
+                <summary>How this was calculated</summary>
+                <div id="results-breakdown"></div>
+            </details>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Created with Gemini. Based on an idea for a deck strength calculator.</p>
+    </footer>
+
+    <script src="vendor/toml.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
