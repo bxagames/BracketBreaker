@@ -1,5 +1,5 @@
 # Global settings for the questionnaire
-title = "Commander Deck Strength Questionnaire"
+title = "Bracket Breaker"
 subtitle = "A tool to help gauge the power level of your EDH deck."
 
 # Tier definitions: minScore, label, and display color

@@ -237,6 +237,32 @@ input:checked + .slider:before {
     color: #171717;
 }
 
+/* Deck Info Section - New */
+.deck-info-section {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem; /* Slightly less than commander-section for visual grouping */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.deck-info-section label {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.deck-info-section input {
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 1rem;
+    background-color: #f3f3f3;
+    color: #171717;
+}
+
 
 /* Results Section */
 #results-section {
@@ -277,6 +303,26 @@ input:checked + .slider:before {
     flex-direction: column;
     align-items: center;
     padding: 20px;
+}
+
+#commander-name-display,
+#deck-name-display {
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+#commander-name-display a,
+#deck-name-display a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#commander-name-display a:hover,
+#deck-name-display a:hover {
+    text-decoration: underline;
 }
 
 #total-score {

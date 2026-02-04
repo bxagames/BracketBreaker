@@ -19,6 +19,17 @@
             <input type="text" id="commander-name" name="commander-name" placeholder="e.g., Atraxa, Praetors' Voice">
             <div id="autocomplete-suggestions" class="hidden"></div>
         </div>
+        
+        <div class="deck-info-section">
+            <label for="deck-name">Deck Name:</label>
+            <input type="text" id="deck-name" name="deck-name" placeholder="e.g., Atraxa's Proliferate Powerhouse">
+        </div>
+
+        <div class="deck-info-section">
+            <label for="decklist-link">Decklist Link:</label>
+            <input type="url" id="decklist-link" name="decklist-link" placeholder="e.g., https://www.moxfield.com/decks/your-deck-id">
+        </div>
+
         <form id="questionnaire-form"></form>
         
         <div class="controls">
@@ -34,6 +45,8 @@
                     <img id="commander-image" src="" alt="Commander Image">
                 </div>
                 <div id="score-container">
+                    <div id="commander-name-display" class="hidden"></div>
+                    <div id="deck-name-display" class="hidden"></div>
                     <span id="total-score">0</span>
                     <span id="tier-label"></span>
                 </div>

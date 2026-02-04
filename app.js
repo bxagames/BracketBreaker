@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
             commanderImage: document.getElementById('commander-image'),
             commanderImageContainer: document.getElementById('commander-image-container'),
             autocompleteSuggestions: document.getElementById('autocomplete-suggestions'),
+            deckNameInput: document.getElementById('deck-name'),       // New
+            decklistLinkInput: document.getElementById('decklist-link'), // New
+            commanderNameDisplay: document.getElementById('commander-name-display'), // New
+            deckNameDisplay: document.getElementById('deck-name-display'),       // New
             form: document.getElementById('questionnaire-form'),
             resultsSection: document.getElementById('results-section'),
             totalScore: document.getElementById('total-score'),
@@ -26,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
             commanderName: '',
             commanderImageUrl: null,
             edhrecRank: null,
+            deckName: '',      // New
+            decklistLink: '',  // New
             currentSuggestions: [],
         },
 
@@ -81,6 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     App.handleCommanderUpdate(selectedName); // Trigger full update for selected card
                     App.ui.clearSuggestions();
                 }
+            });
+
+            // Deck Info Update Listeners
+            this.elements.deckNameInput.addEventListener('input', (e) => {
+                App.state.deckName = e.target.value;
+                App.stateManager.saveState();
+            });
+            this.elements.decklistLinkInput.addEventListener('input', (e) => {
+                App.state.decklistLink = e.target.value;
+                App.stateManager.saveState();
             });
         },
 
@@ -341,6 +357,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 App.elements.tierLabel.textContent = tier.label;
                 App.elements.tierLabel.style.backgroundColor = tier.color;
 
+                // Render Commander Name and Link
+                if (App.state.commanderName) {
+                    // Try a simpler Scryfall search query first
+                    const scryfallUrl = `https://scryfall.com/search?q=${encodeURIComponent(App.state.commanderName)}`; // Simpler search
+                    
+                    console.log('Generated Scryfall URL:', scryfallUrl); // Debug log
+                    
+                    App.elements.commanderNameDisplay.innerHTML = `Commander: <a href="${scryfallUrl}" target="_blank">${App.state.commanderName}</a>`;
+                    App.elements.commanderNameDisplay.classList.remove('hidden');
+
+                    console.log('Commander Name Display HTML:', App.elements.commanderNameDisplay.innerHTML); // Debug log
+                } else {
+                    App.elements.commanderNameDisplay.innerHTML = '';
+                    App.elements.commanderNameDisplay.classList.add('hidden');
+                }
+
+                // Render Commander Name and Link
+                if (App.state.commanderName) {
+                    // Try a simpler Scryfall search query first
+                    const scryfallUrl = `https://scryfall.com/search?q=${encodeURIComponent(App.state.commanderName)}`; // Simpler search
+                    
+                    console.log('Generated Scryfall URL:', scryfallUrl); // Debug log
+                    
+                    App.elements.commanderNameDisplay.innerHTML = `Commander: <a href="${scryfallUrl}" target="_blank">${App.state.commanderName}</a>`;
+                    App.elements.commanderNameDisplay.classList.remove('hidden');
+
+                    console.log('Commander Name Display HTML:', App.elements.commanderNameDisplay.innerHTML); // Debug log
+                } else {
+                    App.elements.commanderNameDisplay.innerHTML = '';
+                    App.elements.commanderNameDisplay.classList.add('hidden');
+                }
+
+                // Render Deck Name and Link
+                console.log('App.state.deckName:', App.state.deckName); // Debug log
+                console.log('App.state.decklistLink:', App.state.decklistLink); // Debug log
+
+                if (App.state.deckName && App.state.decklistLink) {
+                    App.elements.deckNameDisplay.innerHTML = `Deck: <a href="${App.state.decklistLink}" target="_blank">${App.state.deckName}</a>`;
+                    App.elements.deckNameDisplay.classList.remove('hidden');
+                } else if (App.state.deckName) { // Display name without link if only name is present
+                    App.elements.deckNameDisplay.textContent = `Deck: ${App.state.deckName}`;
+                    App.elements.deckNameDisplay.classList.remove('hidden');
+                }
+                else {
+                    App.elements.deckNameDisplay.innerHTML = '';
+                    App.elements.deckNameDisplay.classList.add('hidden');
+                }
+
                 const breakdownHtml = `
                     <table>
                         <tr><th>Question</th><th>Score</th></tr>
@@ -439,6 +503,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 App.elements.commanderNameInput.value = App.state.commanderName;
                 App.ui.renderCommanderImage();
 
+                // Set Deck Info
+                App.state.deckName = newState.deckName || '';
+                App.state.decklistLink = newState.decklistLink || '';
+                App.elements.deckNameInput.value = App.state.deckName;
+                App.elements.decklistLinkInput.value = App.state.decklistLink;
+
                 // Set Answers
                 App.state.answers = newState.answers || {};
                 App.state.config.questions.forEach(q => {
@@ -466,6 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     commanderName: App.state.commanderName,
                     commanderImageUrl: App.state.commanderImageUrl,
                     edhrecRank: App.state.edhrecRank,
+                    deckName: App.state.deckName,      // New
+                    decklistLink: App.state.decklistLink, // New
                 };
                 localStorage.setItem('deckStrengthState', JSON.stringify(stateToSave));
             },
@@ -477,6 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Ensure edhrecRank is loaded if present
                     if (loadedState.edhrecRank !== undefined) {
                         App.state.edhrecRank = loadedState.edhrecRank;
+                    }
+                    // Ensure deckName and decklistLink are loaded if present
+                    if (loadedState.deckName !== undefined) {
+                        App.state.deckName = loadedState.deckName;
+                    }
+                    if (loadedState.decklistLink !== undefined) {
+                        App.state.decklistLink = loadedState.decklistLink;
                     }
                     this.setState(loadedState);
                 }
@@ -490,10 +569,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     App.state.answers = {};
                     App.state.commanderName = '';
                     App.state.commanderImageUrl = null;
-                    App.state.edhrecRank = null; // Reset edhrecRank
+                    App.state.edhrecRank = null;
+                    App.state.deckName = '';       // New
+                    App.state.decklistLink = '';   // New
                     
                     // Reset UI
                     App.elements.commanderNameInput.value = '';
+                    App.elements.deckNameInput.value = '';     // New
+                    App.elements.decklistLinkInput.value = ''; // New
                     App.ui.renderCommanderImage();
                     App.elements.form.reset();
                     
@@ -518,6 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     commanderName: App.state.commanderName,
                     commanderImageUrl: App.state.commanderImageUrl,
                     edhrecRank: App.state.edhrecRank,
+                    deckName: App.state.deckName,      // New
+                    decklistLink: App.state.decklistLink, // New
                 };
                 const jsonString = JSON.stringify(stateToShare);
                 const base64String = btoa(jsonString);
