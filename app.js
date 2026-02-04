@@ -167,16 +167,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     // attempt to extract label/value pairs so UI can render them.
                     if (q.scoring && Array.isArray(q.scoring.options)) {
                         q.scoring.options = q.scoring.options.map(opt => {
+                            // Ensure opt is not null or undefined
+                            if (opt === null || typeof opt === 'undefined') {
+                                console.warn(`Skipping null/undefined option for question ${q.id}:`, opt);
+                                return null;
+                            }
+
+                            // If opt is a string, attempt to parse it
                             if (typeof opt === 'string' && opt.trim().startsWith('{')) {
                                 const labelMatch = opt.match(/label\s*=\s*"([^"]+)"/);
-                                const valueMatch = opt.match(/value\s*=\s*([0-9.]+)/);
-                                return {
-                                    label: labelMatch ? labelMatch[1] : opt,
-                                    value: valueMatch ? parseFloat(valueMatch[1]) : opt
-                                };
+                                const valueMatch = opt.match(/value\s*=\s*([0-9.-]+)/); // Allow negative values and decimals
+                                if (labelMatch && valueMatch) {
+                                    return {
+                                        label: labelMatch[1],
+                                        value: parseFloat(valueMatch[1])
+                                    };
+                                } else {
+                                    console.warn(`Failed to parse string option for question ${q.id}:`, opt);
+                                    return null; // Return null for malformed string options
+                                }
                             }
-                            return opt;
-                        });
+                            // If opt is already an object, validate its structure
+                            else if (typeof opt === 'object' && opt !== null && 'label' in opt && 'value' in opt) {
+                                // Ensure value is a number
+                                if (typeof opt.value === 'string') {
+                                    opt.value = parseFloat(opt.value);
+                                }
+                                return opt;
+                            } else {
+                                console.warn(`Skipping malformed option for question ${q.id}:`, opt);
+                                return null; // Return null for any other malformed options
+                            }
+                        }).filter(opt => opt !== null); // Filter out any nulls resulting from parsing failures
                     }
 
                     return q;
