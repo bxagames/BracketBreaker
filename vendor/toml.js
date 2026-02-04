@@ -23,26 +23,24 @@ var TOML = (function() {
 
     function parseKey() {
       var start = i;
-      while (i < len && str[i] !== '=' && str[i] !== ' ' && str[i] !== '	' && str[i] !== '
-' && str[i] !== '' && str[i] !== '[') {
+      while (i < len && str[i] !== '=' && str[i] !== ' ' && str[i] !== '\t' && str[i] !== '\n' && str[i] !== '\r' && str[i] !== '[' && str[i] !== ']') {
         i++;
       }
-      return str.substring(start, i);
+      // Trim whitespace and any stray closing brackets that might be included
+      return str.substring(start, i).trim();
     }
 
     function parseString() {
       var start = ++i;
       while (i < len && str[i] !== '"') {
-        if (str[i] === '') {
+        if (str[i] === '\\') {
           i++;
         }
         i++;
       }
       var res = str.substring(start, i++);
       // unescape
-      return res.replace(/"/g, '"').replace(/	/g, '	').replace(/
-/g, '
-').replace(//g, '').replace(/\/g, '');
+      return res.replace(/\\"/g, '"').replace(/\\t/g, '\t').replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\\\/g, '\\');
     }
 
     function parseValue() {
@@ -57,16 +55,52 @@ var TOML = (function() {
                 if (str[i] === ',') {
                     i++;
                 }
-                while (i < len && (str[i] === ' ' || str[i] === '	')) {
+                while (i < len && (str[i] === ' ' || str[i] === '\t' || str[i] === '\n' || str[i] === '\r')) {
                     i++;
+                }
+                // Safety: break if somehow stuck to avoid infinite loops
+                if (arr.length > 10000) {
+                    throw new Error('Array parse aborted: too many elements (possible malformed TOML)');
                 }
             }
             i++;
             return arr;
+        } else if (c === '{') {
+            // Inline table e.g. { label = "2 cards", value = 6 }
+            i++;
+            var obj = {};
+            while (i < len && str[i] !== '}') {
+                // skip whitespace
+                while (i < len && (str[i] === ' ' || str[i] === '\t' || str[i] === '\n' || str[i] === '\r')) i++;
+                if (i >= len || str[i] === '}') break;
+
+                // parse key
+                var kstart = i;
+                while (i < len && str[i] !== '=' && str[i] !== ',' && str[i] !== '}' && str[i] !== ' ' && str[i] !== '\t' && str[i] !== '\n' && str[i] !== '\r') {
+                    i++;
+                }
+                var k = str.substring(kstart, i).trim();
+                // skip to '='
+                while (i < len && str[i] !== '=' && str[i] !== '}') i++;
+                if (str[i] === '=') {
+                    i++;
+                }
+                // skip whitespace
+                while (i < len && (str[i] === ' ' || str[i] === '\t')) i++;
+                var v = parseValue();
+                obj[k] = v;
+
+                // skip optional whitespace and comma
+                while (i < len && (str[i] === ' ' || str[i] === '\t' || str[i] === '\n' || str[i] === '\r')) i++;
+                if (str[i] === ',') {
+                    i++;
+                }
+            }
+            if (i < len && str[i] === '}') i++;
+            return obj;
         } else {
             var start = i;
-            while (i < len && str[i] !== ',' && str[i] !== '
-' && str[i] !== '' && str[i] !== ' ' && str[i] !== '	' && str[i] !== ']') {
+            while (i < len && str[i] !== ',' && str[i] !== '\n' && str[i] !== '\r' && str[i] !== ' ' && str[i] !== '\t' && str[i] !== ']') {
                 i++;
             }
             var val = str.substring(start, i).trim();
@@ -83,16 +117,14 @@ var TOML = (function() {
 
 
     function skipWhitespace() {
-      while (i < len && (str[i] === ' ' || str[i] === '	' || str[i] === '
-' || str[i] === '')) {
+      while (i < len && (str[i] === ' ' || str[i] === '\t' || str[i] === '\n' || str[i] === '\r')) {
         i++;
       }
     }
 
     function skipComment() {
       if (str[i] === '#') {
-        while (i < len && str[i] !== '
-' && str[i] !== '') {
+        while (i < len && str[i] !== '\n' && str[i] !== '\r') {
           i++;
         }
       }
@@ -163,7 +195,6 @@ var TOML = (function() {
       }
       skipWhitespace();
     }
-
     return obj;
   }
 

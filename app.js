@@ -76,18 +76,64 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(`Failed to fetch config.toml: ${response.statusText}`);
                 }
                 const tomlString = await response.text();
-                App.state.config = TOML.parse(tomlString);
+                const parsed = TOML.parse(tomlString);
+
+                // Basic validation
+                if (!parsed || !Array.isArray(parsed.questions)) {
+                    console.error('Parsed config missing required `questions` array:', parsed);
+                    throw new Error('Invalid configuration: missing questions.');
+                }
+
+                // Normalize question objects to work around parser limitations
+                parsed.questions = parsed.questions.map(q => {
+                    // Ensure nested scoring object exists and move dotted keys into it
+                    q.scoring = q.scoring || {};
+                    Object.keys(q).forEach(k => {
+                        if (k.startsWith('scoring.') && k.length > 8) {
+                            q.scoring[k.slice(8)] = q[k];
+                            delete q[k];
+                        }
+                    });
+
+                    // If options were parsed as inline-table strings (e.g. "{ label = \"2 cards\", value = 6 }")
+                    // attempt to extract label/value pairs so UI can render them.
+                    if (q.scoring && Array.isArray(q.scoring.options)) {
+                        q.scoring.options = q.scoring.options.map(opt => {
+                            if (typeof opt === 'string' && opt.trim().startsWith('{')) {
+                                const labelMatch = opt.match(/label\s*=\s*"([^"]+)"/);
+                                const valueMatch = opt.match(/value\s*=\s*([0-9.]+)/);
+                                return {
+                                    label: labelMatch ? labelMatch[1] : opt,
+                                    value: valueMatch ? parseFloat(valueMatch[1]) : opt
+                                };
+                            }
+                            return opt;
+                        });
+                    }
+
+                    return q;
+                });
+
+                App.state.config = parsed;
+                console.log('Parsed and normalized config:', App.state.config);
             },
         },
 
         // UI Rendering
         ui: {
             renderGlobalContent() {
-                App.elements.mainTitle.textContent = App.state.config.title || 'Questionnaire';
-                App.elements.mainSubtitle.textContent = App.state.config.subtitle || '';
+                const cfg = App.state.config || {};
+                App.elements.mainTitle.textContent = cfg.title || 'Questionnaire';
+                App.elements.mainSubtitle.textContent = cfg.subtitle || '';
             },
 
             renderQuestions() {
+                if (!App.state.config || !Array.isArray(App.state.config.questions)) {
+                    console.error('No questions available to render. Current config:', App.state.config);
+                    App.elements.form.innerHTML = '<p class="error">Configuration error: no questions found. Check console for details.</p>';
+                    return;
+                }
+
                 const questionsHtml = App.state.config.questions.map(q => {
                     switch (q.type) {
                         case 'toggle': return this.renderToggle(q);
@@ -282,8 +328,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scoring Logic
         scoring: {
             calculateAndDisplay() {
+                if (!App.state.config) {
+                    console.warn('Cannot calculate score: config not loaded.');
+                    return;
+                }
+
                 const breakdown = [];
-                const categoryTotals = App.state.config.categories.reduce((acc, cat) => ({...acc, [cat.tag]: 0}), {});
+                const categoryTotals = (App.state.config.categories || []).reduce((acc, cat) => ({...acc, [cat.tag]: 0}), {});
 
                 let totalScore = 0;
 
