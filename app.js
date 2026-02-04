@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
         elements: {
             mainTitle: document.getElementById('main-title'),
             mainSubtitle: document.getElementById('main-subtitle'),
+            commanderNameInput: document.getElementById('commander-name'),
+            commanderImage: document.getElementById('commander-image'),
+            commanderImageContainer: document.getElementById('commander-image-container'),
+            autocompleteSuggestions: document.getElementById('autocomplete-suggestions'),
             form: document.getElementById('questionnaire-form'),
             resultsSection: document.getElementById('results-section'),
             totalScore: document.getElementById('total-score'),
@@ -19,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state: {
             config: null,
             answers: {},
+            commanderName: '',
+            commanderImageUrl: null,
+            currentSuggestions: [],
         },
 
         // Initialization
@@ -27,13 +34,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 await this.config.load();
                 this.ui.renderGlobalContent();
                 this.ui.renderQuestions();
-                this.stateManager.loadAnswers();
+                this.stateManager.loadState();
+                this.debouncedHandleCommanderInput = this.debounce(this.handleCommanderInput, 300);
                 this.addEventListeners();
                 this.handleUrlParams();
             } catch (error) {
                 console.error('Initialization failed:', error);
                 alert('Failed to load the questionnaire. Please check the console for errors.');
             }
+        },
+
+        // Debounce utility
+        debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
         },
 
         // Event Listeners
@@ -48,6 +66,53 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             this.elements.resetBtn.addEventListener('click', () => this.stateManager.reset());
             this.elements.shareBtn.addEventListener('click', () => this.stateManager.share());
+
+            // Autocomplete and Commander Image Update
+            this.elements.commanderNameInput.addEventListener('input', this.debouncedHandleCommanderInput);
+            this.elements.commanderNameInput.addEventListener('blur', () => {
+                // Delay hiding to allow click on suggestion
+                setTimeout(() => App.ui.clearSuggestions(), 150);
+            });
+            this.elements.autocompleteSuggestions.addEventListener('click', (e) => {
+                if (e.target.classList.contains('suggestion-item')) {
+                    const selectedName = e.target.textContent;
+                    App.elements.commanderNameInput.value = selectedName;
+                    App.handleCommanderUpdate(selectedName); // Trigger full update for selected card
+                    App.ui.clearSuggestions();
+                }
+            });
+        },
+
+        debouncedHandleCommanderInput: null, // Initialized in init or at top level
+
+        async handleCommanderInput() {
+            const query = App.elements.commanderNameInput.value.trim();
+            if (query.length < 2) {
+                App.ui.clearSuggestions();
+                return;
+            }
+            const suggestions = await App.scryfall.fetchAutocompleteSuggestions(query);
+            App.state.currentSuggestions = suggestions || [];
+            App.ui.renderSuggestions(suggestions);
+        },
+
+        async handleCommanderUpdate(nameOverride = null) {
+            const name = nameOverride || this.elements.commanderNameInput.value.trim();
+            if (name === this.state.commanderName && nameOverride === null) return; // No change unless forced
+
+            this.state.commanderName = name;
+            App.elements.commanderNameInput.value = name; // Ensure input reflects selected name
+            if (!name) {
+                this.state.commanderImageUrl = null;
+                this.ui.renderCommanderImage();
+                this.stateManager.saveState();
+                return;
+            }
+
+            const card = await this.scryfall.fetchCard(name);
+            this.state.commanderImageUrl = card?.image_uris?.art_crop || null;
+            this.ui.renderCommanderImage();
+            this.stateManager.saveState();
         },
         
         handleUrlParams() {
@@ -56,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     const answersJson = atob(params.get('answers'));
                     const answers = JSON.parse(answersJson);
-                    this.stateManager.setAnswers(answers);
+                    this.stateManager.setState(answers);
                     this.elements.resultsSection.classList.remove('hidden');
                     this.elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
                 } catch(e) {
@@ -212,8 +277,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             },
+
+            renderSuggestions(suggestions) {
+                App.elements.autocompleteSuggestions.innerHTML = '';
+                if (suggestions && suggestions.length > 0) {
+                    suggestions.forEach(suggestion => {
+                        const div = document.createElement('div');
+                        div.classList.add('suggestion-item');
+                        div.textContent = suggestion;
+                        App.elements.autocompleteSuggestions.appendChild(div);
+                    });
+                    App.elements.autocompleteSuggestions.classList.remove('hidden');
+                } else {
+                    App.elements.autocompleteSuggestions.classList.add('hidden');
+                }
+            },
+
+            clearSuggestions() {
+                App.elements.autocompleteSuggestions.innerHTML = '';
+                App.elements.autocompleteSuggestions.classList.add('hidden');
+            },
+
+            renderCommanderImage() {
+                if (App.state.commanderImageUrl) {
+                    App.elements.commanderImage.src = App.state.commanderImageUrl;
+                    App.elements.commanderImage.alt = App.state.commanderName;
+                    App.elements.commanderImageContainer.classList.remove('hidden');
+                } else {
+                    App.elements.commanderImage.src = '';
+                    App.elements.commanderImage.alt = 'Commander Image';
+                    App.elements.commanderImageContainer.classList.add('hidden');
+                }
+            },
             
             renderResults(score, tier, breakdown, categoryTotals) {
+                App.ui.renderCommanderImage();
                 App.elements.totalScore.textContent = score.toFixed(1);
                 App.elements.tierLabel.textContent = tier.label;
                 App.elements.tierLabel.style.backgroundColor = tier.color;
@@ -256,11 +354,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     App.state.answers[id] = value;
                 }
-                this.saveAnswers();
+                this.saveState();
             },
             
-            setAnswers(newAnswers) {
-                App.state.answers = newAnswers;
+            setState(newState) {
+                // Set Commander Info
+                App.state.commanderName = newState.commanderName || '';
+                App.state.commanderImageUrl = newState.commanderImageUrl || null;
+                App.elements.commanderNameInput.value = App.state.commanderName;
+                App.ui.renderCommanderImage();
+
+                // Set Answers
+                App.state.answers = newState.answers || {};
                 App.state.config.questions.forEach(q => {
                     const input = App.elements.form.elements[q.id];
                     const answer = App.state.answers[q.id];
@@ -276,26 +381,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         input.value = answer;
                     }
                 });
-                this.saveAnswers();
+                this.saveState();
                 App.scoring.calculateAndDisplay();
             },
 
-            saveAnswers() {
-                localStorage.setItem('deckAnswers', JSON.stringify(App.state.answers));
+            saveState() {
+                const stateToSave = {
+                    answers: App.state.answers,
+                    commanderName: App.state.commanderName,
+                    commanderImageUrl: App.state.commanderImageUrl,
+                };
+                localStorage.setItem('deckStrengthState', JSON.stringify(stateToSave));
             },
 
-            loadAnswers() {
-                const saved = localStorage.getItem('deckAnswers');
+            loadState() {
+                const saved = localStorage.getItem('deckStrengthState');
                 if (saved) {
-                    this.setAnswers(JSON.parse(saved));
+                    this.setState(JSON.parse(saved));
                 }
             },
             
             reset() {
-                 if(confirm('Are you sure you want to reset all your answers?')) {
-                    localStorage.removeItem('deckAnswers');
+                 if(confirm('Are you sure you want to reset all your answers and commander?')) {
+                    localStorage.removeItem('deckStrengthState');
+                    
+                    // Reset state object
                     App.state.answers = {};
+                    App.state.commanderName = '';
+                    App.state.commanderImageUrl = null;
+                    
+                    // Reset UI
+                    App.elements.commanderNameInput.value = '';
+                    App.ui.renderCommanderImage();
                     App.elements.form.reset();
+                    
                     // Manually reset count inputs and re-check default radios
                      App.state.config.questions.forEach(q => {
                         if (q.type === 'count') {
@@ -312,7 +431,12 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             
             share() {
-                const jsonString = JSON.stringify(App.state.answers);
+                const stateToShare = {
+                    answers: App.state.answers,
+                    commanderName: App.state.commanderName,
+                    commanderImageUrl: App.state.commanderImageUrl,
+                };
+                const jsonString = JSON.stringify(stateToShare);
                 const base64String = btoa(jsonString);
                 const url = new URL(window.location);
                 url.searchParams.set('answers', base64String);
@@ -386,6 +510,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 return currentTier;
+            },
+        },
+
+        // Scryfall API handler
+        scryfall: {
+            async fetchCard(name) {
+                if (!name) return null;
+                try {
+                    const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            console.warn(`Card not found on Scryfall: ${name}`);
+                            return null;
+                        }
+                        throw new Error(`Scryfall API error: ${response.statusText}`);
+                    }
+                    const card = await response.json();
+                    return card;
+                } catch (error) {
+                    console.error('Failed to fetch from Scryfall:', error);
+                    return null;
+                }
+            },
+
+            async fetchAutocompleteSuggestions(query) {
+                if (!query || query.length < 2) return []; // Scryfall autocomplete typically needs at least 2 chars
+                try {
+                    const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
+                    if (!response.ok) {
+                        console.warn(`Scryfall autocomplete API error: ${response.statusText}`);
+                        return [];
+                    }
+                    const data = await response.json();
+                    return data.data || []; // 'data' field contains the array of suggestions
+                } catch (error) {
+                    console.error('Failed to fetch autocomplete suggestions from Scryfall:', error);
+                    return [];
+                }
             },
         },
     };

@@ -14,6 +14,11 @@
     </header>
 
     <main>
+        <div class="commander-section">
+            <label for="commander-name">Commander Name:</label>
+            <input type="text" id="commander-name" name="commander-name" placeholder="e.g., Atraxa, Praetors' Voice">
+            <div id="autocomplete-suggestions" class="hidden"></div>
+        </div>
         <form id="questionnaire-form"></form>
         
         <div class="controls">
@@ -25,6 +30,9 @@
         <section id="results-section" class="hidden">
             <h2>Results</h2>
             <div id="results-summary">
+                <div id="commander-image-container" class="hidden">
+                    <img id="commander-image" src="" alt="Commander Image">
+                </div>
                 <div id="score-container">
                     <span id="total-score">0</span>
                     <span id="tier-label"></span>

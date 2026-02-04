@@ -55,6 +55,26 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   label = "Extra Turns"
   icon = "⏳"
 
+[[categories]]
+  tag = "jank"
+  label = "Jank Factor"
+  icon = "🎲"
+
+[[categories]]
+  tag = "telegraphed"
+  label = "Telegraphed Win"
+  icon = "⏱️"
+
+[[categories]]
+  tag = "resilience"
+  label = "Resilience"
+  icon = "💪"
+
+[[categories]]
+  tag = "hateable"
+  label = "Hateability"
+  icon = "💢"
+
 
 # --- Questions ---
 
@@ -124,3 +144,55 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   prompt = "Does the deck contain loops that can generate infinite or near-infinite turns?"
   scoring.weight = 6
   tags = ["extra_turns"]
+
+[[questions]]
+  id = "jank"
+  type = "multiple"
+  name = "Jank Factor"
+  prompt = "How 'Janky' is your deck?"
+  description = "This field is based on the inherent synergies of the cards where 0 represents that all cards were chosen in an effort to drive towards a win and 5 represents that cards were selected on mostly a vibes basis."
+  scoring.options = [
+    { label = "0 - All cards chosen to drive towards a win", value = 0 },
+    { label = "1 - Minor vibes, mostly competitive", value = -0.5 },
+    { label = "2 - Some vibes, some competitive", value = -1.5 },
+    { label = "3 - Even split vibes/competitive", value = -3 },
+    { label = "4 - Mostly vibes, little competitive", value = -5 },
+    { label = "5 - Mostly/all vibes basis", value = -7 }
+  ]
+  tags = ["jank"]
+
+[[questions]]
+  id = "telegraphed"
+  type = "count"
+  name = "Telegraphed Win"
+  prompt = "If no one were to stop it, how many turns would it take to pull off the main win condition?"
+  description = "On a scale of 1 to 5+ (where 5+ represents 5 or more turns)."
+  scoring.weight_per = -1.5
+  scoring.cap = 5
+  tags = ["telegraphed"]
+
+[[questions]]
+  id = "resilience"
+  type = "multiple"
+  name = "Resilience after Interaction"
+  prompt = "How well does your deck generate resources after being interacted with (e.g., board wipe, counterspell)?"
+  description = "Measures the deck's ability to recover and continue its game plan even after opponents disrupt it."
+  scoring.options = [
+    { label = "Low - Struggles to recover", value = 0 },
+    { label = "Medium - Can recover but takes time/resources", value = 2 },
+    { label = "High - Recovers quickly and efficiently", value = 4 }
+  ]
+  tags = ["resilience"]
+
+[[questions]]
+  id = "hateable"
+  type = "multiple"
+  name = "Hateability"
+  prompt = "How 'hateable' is your deck's primary strategy or key components?"
+  description = "For example, graveyard decks are medium-high hateable since it's fairly easy to remove graveyards in this format. More hateable implies lower score."
+  scoring.options = [
+    { label = "Low - Hard to disrupt, resilient strategy", value = 0 },
+    { label = "Medium - Some vulnerabilities, but can adapt", value = -2 },
+    { label = "High - Easily disrupted, relies on vulnerable components", value = -4 }
+  ]
+  tags = ["hateable"]
