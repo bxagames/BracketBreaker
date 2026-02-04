@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
             answers: {},
             commanderName: '',
             commanderImageUrl: null,
+            edhrecRank: null,
             currentSuggestions: [],
         },
 
@@ -104,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             App.elements.commanderNameInput.value = name; // Ensure input reflects selected name
             if (!name) {
                 this.state.commanderImageUrl = null;
+                this.state.edhrecRank = null; // Reset edhrecRank
                 this.ui.renderCommanderImage();
                 this.stateManager.saveState();
                 return;
@@ -111,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const card = await this.scryfall.fetchCard(name);
             this.state.commanderImageUrl = card?.image_uris?.art_crop || null;
+            this.state.edhrecRank = card?.edhrec_rank || null; // Store edhrec_rank
             this.ui.renderCommanderImage();
             this.stateManager.saveState();
         },
@@ -330,16 +333,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 App.elements.resultsBreakdown.innerHTML = breakdownHtml;
 
-                const wrappedHtml = App.state.config.categories.filter(cat => categoryTotals[cat.tag] > 0)
-                    .sort((a,b) => categoryTotals[b.tag] - categoryTotals[a.tag])
-                    .map(cat => `
-                    <div class="category-card">
-                        <div class="icon">${cat.icon}</div>
-                        <div class="label">${cat.label}</div>
-                        <div class="value">${categoryTotals[cat.tag].toFixed(1)}</div>
-                    </div>
-                `).join('');
-                App.elements.wrappedCategories.innerHTML = wrappedHtml || '<p>No specific categories to highlight based on your answers.</p>';
+                const wrappedHtml = App.state.config.categories
+                    .sort((a,b) => (categoryTotals[b.tag] || 0) - (categoryTotals[a.tag] || 0)) // Still sort by total if present
+                    .map(cat => {
+                        let displayValue = '';
+                        const associatedQuestions = App.state.config.questions.filter(q => q.tags && q.tags.includes(cat.tag));
+                        
+                        if (associatedQuestions.length > 0) {
+                            // For simplicity, take the first associated question's answer for display logic
+                            const q = associatedQuestions[0];
+                            const answer = App.state.answers[q.id];
+
+                            if (q.type === 'count' || q.type === 'toggle') {
+                                // For count and toggle, just show the answer if it's not the default 0 or false
+                                if (answer !== undefined && answer !== null && answer !== 0 && answer !== false) {
+                                     displayValue = answer.toString();
+                                } else if (q.type === 'toggle' && answer === false) {
+                                    displayValue = 'No'; // Explicitly show 'No' for false toggles
+                                } else {
+                                    displayValue = 'N/A';
+                                }
+                            } else if (q.type === 'multiple') {
+                                // For multiple choice, find the label
+                                const selectedOption = q.scoring.options.find(opt => opt.value === answer);
+                                displayValue = selectedOption ? selectedOption.label : 'N/A';
+                            }
+                        } else {
+                            displayValue = categoryTotals[cat.tag] !== undefined ? categoryTotals[cat.tag].toFixed(1) : 'N/A';
+                        }
+                        
+                        return `
+                            <div class="category-card">
+                                <div class="icon">${cat.icon}</div>
+                                <div class="label">${cat.label}</div>
+                                <div class="value">${displayValue}</div>
+                            </div>
+                        `;
+                    }).join('');
+                App.elements.wrappedCategories.innerHTML = wrappedHtml || '<p>No categories to display.</p>';
 
             }
         },
@@ -361,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set Commander Info
                 App.state.commanderName = newState.commanderName || '';
                 App.state.commanderImageUrl = newState.commanderImageUrl || null;
+                App.state.edhrecRank = newState.edhrecRank || null;
                 App.elements.commanderNameInput.value = App.state.commanderName;
                 App.ui.renderCommanderImage();
 
@@ -390,6 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     answers: App.state.answers,
                     commanderName: App.state.commanderName,
                     commanderImageUrl: App.state.commanderImageUrl,
+                    edhrecRank: App.state.edhrecRank,
                 };
                 localStorage.setItem('deckStrengthState', JSON.stringify(stateToSave));
             },
@@ -397,7 +430,12 @@ document.addEventListener('DOMContentLoaded', () => {
             loadState() {
                 const saved = localStorage.getItem('deckStrengthState');
                 if (saved) {
-                    this.setState(JSON.parse(saved));
+                    const loadedState = JSON.parse(saved);
+                    // Ensure edhrecRank is loaded if present
+                    if (loadedState.edhrecRank !== undefined) {
+                        App.state.edhrecRank = loadedState.edhrecRank;
+                    }
+                    this.setState(loadedState);
                 }
             },
             
@@ -409,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     App.state.answers = {};
                     App.state.commanderName = '';
                     App.state.commanderImageUrl = null;
+                    App.state.edhrecRank = null; // Reset edhrecRank
                     
                     // Reset UI
                     App.elements.commanderNameInput.value = '';
@@ -435,6 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     answers: App.state.answers,
                     commanderName: App.state.commanderName,
                     commanderImageUrl: App.state.commanderImageUrl,
+                    edhrecRank: App.state.edhrecRank,
                 };
                 const jsonString = JSON.stringify(stateToShare);
                 const base64String = btoa(jsonString);
@@ -461,6 +501,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const categoryTotals = (App.state.config.categories || []).reduce((acc, cat) => ({...acc, [cat.tag]: 0}), {});
 
                 let totalScore = 0;
+
+                // Add commander EDHREC Rank contribution
+                let edhrecScoreContribution = 0;
+                if (App.state.edhrecRank) {
+                    const rank = App.state.edhrecRank;
+                    // Formula: score_contribution = 1248.75 / (rank + 248.75)
+                    edhrecScoreContribution = 1248.75 / (rank + 248.75);
+                    totalScore += edhrecScoreContribution;
+                    breakdown.push({ name: `Commander EDHREC Rank (${rank})`, score: edhrecScoreContribution });
+                }
 
                 App.state.config.questions.forEach(q => {
                     const answer = App.state.answers[q.id];

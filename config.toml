@@ -75,6 +75,16 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   label = "Hateability"
   icon = "💢"
 
+[[categories]]
+  tag = "protection"
+  label = "Protection"
+  icon = "🛡️"
+
+[[categories]]
+  tag = "board_wipes"
+  label = "Board Wipes"
+  icon = "💥"
+
 
 # --- Questions ---
 
@@ -126,6 +136,29 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   prompt = "How many 'free' or alternate-cost interaction spells are in the deck?"
   description = "e.g., Force of Will, Force of Negation, Deflecting Swat, Fierce Guardianship."
   scoring.weight_per = 2
+  tags = ["interaction"]
+
+[[questions]]
+  id = "regular_interaction"
+  type = "multiple"
+  name = "Regular Interaction"
+  prompt = "How many regular interaction spells are in the deck?"
+  description = "e.g., Counterspell, Swords to Plowshares, Lightning Bolt. Excludes free interaction, protection, and board wipes."
+  scoring.options = [
+    { label = "0", value = 0 },
+    { label = "1", value = 0.25 },
+    { label = "2", value = 0.37 },
+    { label = "3", value = 0.56 },
+    { label = "4", value = 0.84 },
+    { label = "5", value = 1.26 },
+    { label = "6", value = 1.89 },
+    { label = "7", value = 2.84 },
+    { label = "8", value = 4.26 },
+    { label = "9", value = 6.39 },
+    { label = "10", value = 9.58 },
+    { label = "11", value = 14.37 },
+    { label = "12+", value = 21.56 }
+  ]
   tags = ["interaction"]
 
 [[questions]]
@@ -196,3 +229,21 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
     { label = "High - Easily disrupted, relies on vulnerable components", value = -4 }
   ]
   tags = ["hateable"]
+
+[[questions]]
+  id = "protection"
+  type = "count"
+  name = "Protection Spells"
+  prompt = "How many protection spells are in the deck?"
+  description = "e.g., Fog, Teferi's Protection, Heroic Intervention."
+  scoring.weight_per = 1.0
+  tags = ["protection"]
+
+[[questions]]
+  id = "board_wipes"
+  type = "count"
+  name = "Board Wipes"
+  prompt = "How many board wipe effects are in the deck?"
+  description = "e.g., Damnation, Wrath of God, Blasphemous Act."
+  scoring.weight_per = 1.5
+  tags = ["board_wipes"]
