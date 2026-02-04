@@ -85,6 +85,11 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   label = "Board Wipes"
   icon = "💥"
 
+[[categories]]
+  tag = "hate_pieces"
+  label = "Hate Pieces"
+  icon = "😠"
+
 
 # --- Questions ---
 
@@ -198,7 +203,7 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   id = "telegraphed"
   type = "count"
   name = "Telegraphed Win"
-  prompt = "If no one were to stop it, how many turns would it take to pull off the main win condition?"
+  prompt = "Once your high value pieces are in hand, and/or on the field, and if no one were to stop it, how many turns would it take to pull off the main win condition?"
   description = "On a scale of 1 to 5+ (where 5+ represents 5 or more turns)."
   scoring.weight_per = -1.5
   scoring.cap = 5
@@ -247,3 +252,12 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   description = "e.g., Damnation, Wrath of God, Blasphemous Act."
   scoring.weight_per = 1.5
   tags = ["board_wipes"]
+
+[[questions]]
+  id = "hate_pieces"
+  type = "count"
+  name = "Hate Pieces"
+  prompt = "How many 'hate' pieces does your deck run?"
+  description = "e.g., Bojuka Bog, Propaganda, Smothering Tithe. Cards that target specific strategies or are generally considered annoying."
+  scoring.weight_per = 1.2
+  tags = ["hate_pieces"]

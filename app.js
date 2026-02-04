@@ -332,45 +332,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     </table>
                 `;
                 App.elements.resultsBreakdown.innerHTML = breakdownHtml;
+                
+                const getQualitativeLevel = (tag, total) => {
+                    const thresholds = {
+                        // Negative scoring
+                        hateable: { low: -1, medium: -3, high: -5 },
+                        jank: { low: -1, medium: -3, high: -6 },
+                        telegraphed: { low: -1, medium: -3, high: -5 },
+                        // Positive scoring
+                        stax: { low: 1, medium: 4, high: 6 },
+                        resilience: { low: 1, medium: 3, high: 5 },
+                        combos: { low: 1, medium: 4, high: 7 },
+                        extra_turns: { low: 1, medium: 4, high: 7 },
+                    };
+                    const th = thresholds[tag];
+                    if (!th) return null;
+
+                    if (total === 0) return 'None';
+                    if (th.low < 0) { // Inverted scale for negative scores
+                        if (total <= th.high) return 'High';
+                        if (total <= th.medium) return 'Medium';
+                        if (total <= th.low) return 'Low';
+                        return 'None';
+                    } else {
+                        if (total >= th.high) return 'High';
+                        if (total >= th.medium) return 'Medium';
+                        if (total >= th.low) return 'Low';
+                        return 'None';
+                    }
+                };
 
                 const wrappedHtml = App.state.config.categories
-                    .sort((a,b) => (categoryTotals[b.tag] || 0) - (categoryTotals[a.tag] || 0)) // Still sort by total if present
-                    .map(cat => {
+                    .sort((a,b) => (categoryTotals[b.tag] || 0) - (categoryTotals[a.tag] || 0))
+                    .reduce((html, cat) => {
                         let displayValue = '';
-                        const associatedQuestions = App.state.config.questions.filter(q => q.tags && q.tags.includes(cat.tag));
+                        const total = categoryTotals[cat.tag];
+                        const qualitativeCategories = ['hateable', 'jank', 'stax', 'resilience', 'combos', 'extra_turns', 'telegraphed'];
                         
-                        if (associatedQuestions.length > 0) {
-                            // For simplicity, take the first associated question's answer for display logic
-                            const q = associatedQuestions[0];
-                            const answer = App.state.answers[q.id];
-
-                            if (q.type === 'count' || q.type === 'toggle') {
-                                // For count and toggle, just show the answer if it's not the default 0 or false
-                                if (answer !== undefined && answer !== null && answer !== 0 && answer !== false) {
-                                     displayValue = answer.toString();
-                                } else if (q.type === 'toggle' && answer === false) {
-                                    displayValue = 'No'; // Explicitly show 'No' for false toggles
-                                } else {
-                                    displayValue = 'N/A';
-                                }
-                            } else if (q.type === 'multiple') {
-                                // For multiple choice, find the label
-                                const selectedOption = q.scoring.options.find(opt => opt.value === answer);
-                                displayValue = selectedOption ? selectedOption.label : 'N/A';
-                            }
+                        if (qualitativeCategories.includes(cat.tag)) {
+                            displayValue = getQualitativeLevel(cat.tag, total);
                         } else {
-                            displayValue = categoryTotals[cat.tag] !== undefined ? categoryTotals[cat.tag].toFixed(1) : 'N/A';
+                            // Logic for count-based categories that don't need qualitative labels
+                            const associatedQuestions = App.state.config.questions.filter(q => q.tags && q.tags.includes(cat.tag));
+                             if (associatedQuestions.length > 0) {
+                                const answer = App.state.answers[associatedQuestions[0].id];
+                                if (answer) displayValue = answer.toString();
+                            }
                         }
-                        
-                        return `
-                            <div class="category-card">
-                                <div class="icon">${cat.icon}</div>
-                                <div class="label">${cat.label}</div>
-                                <div class="value">${displayValue}</div>
-                            </div>
-                        `;
-                    }).join('');
-                App.elements.wrappedCategories.innerHTML = wrappedHtml || '<p>No categories to display.</p>';
+
+                        if (displayValue) {
+                            html += `
+                                <div class="category-card">
+                                    <div class="icon">${cat.icon}</div>
+                                    <div class="label">${cat.label}</div>
+                                    <div class="value">${displayValue}</div>
+                                </div>
+                            `;
+                        }
+                        return html;
+                    }, '');
+                App.elements.wrappedCategories.innerHTML = wrappedHtml || '<p>No specific categories to highlight based on your answers.</p>';
 
             }
         },
