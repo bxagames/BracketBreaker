@@ -629,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const categoryTotals = (App.state.config.categories || []).reduce((acc, cat) => ({...acc, [cat.tag]: 0}), {});
 
                 let totalScore = 0;
+                let jankMultiplier = 1.0; // Initialize jank multiplier
 
                 // Add commander EDHREC Rank contribution
                 let edhrecScoreContribution = 0;
@@ -643,6 +644,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 App.state.config.questions.forEach(q => {
                     const answer = App.state.answers[q.id];
                     let questionScore = 0;
+
+                    // Handle Jank Factor as a multiplier
+                    if (q.id === 'jank') {
+                        if (answer !== undefined) {
+                            // Convert jank value to multiplier: 0 -> 1.0, -0.5 -> 0.95, -7 -> 0.3
+                            jankMultiplier = 1 + (parseFloat(answer) / 10);
+                            // Ensure multiplier doesn't go below 0
+                            if (jankMultiplier < 0) jankMultiplier = 0;
+                        }
+                        // Do not add jank score directly to totalScore
+                        breakdown.push({ name: q.name, score: 0, isMultiplier: true, originalValue: parseFloat(answer) || 0 });
+                        return; // Skip rest of loop for jank question
+                    }
 
                     if (answer !== undefined) {
                         switch (q.type) {
@@ -673,6 +687,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                 });
+                
+                // Apply jank multiplier to the total score
+                const preMultiplierScore = totalScore; // For breakdown display
+                totalScore *= jankMultiplier;
+
+                // Add jank multiplier to breakdown for display
+                if (jankMultiplier !== 1.0) {
+                    // Find the jank entry and update its score to reflect its impact
+                    const jankEntryIndex = breakdown.findIndex(item => item.isMultiplier);
+                    if (jankEntryIndex !== -1) {
+                         // This score isn't 'added', but represents the change.
+                         // Displaying it as a percentage reduction might be clearer in the breakdown.
+                         breakdown[jankEntryIndex].score = (jankMultiplier - 1) * preMultiplierScore;
+                         breakdown[jankEntryIndex].name = `Jank Factor (Multiplier: ${(jankMultiplier * 100).toFixed(0)}%)`;
+                    }
+                }
+
+                // Recalculate category totals after jank multiplier for consistency if needed,
+                // or decide if multiplier only applies to final total and not categories.
+                // For now, assuming multiplier only applies to final totalScore.
                 
                 const tier = this.getTier(totalScore);
                 App.ui.renderResults(totalScore, tier, breakdown, categoryTotals);

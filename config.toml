@@ -90,6 +90,10 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   label = "Hate Pieces"
   icon = "😠"
 
+[[categories]]
+  tag = "evasion"
+  label = "Evasion"
+  icon = "💨" # Placeholder icon for evasion
 
 # --- Questions ---
 
@@ -190,10 +194,10 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   prompt = "How 'Janky' is your deck?"
   description = "This field is based on the inherent synergies of the cards where 0 represents that all cards were chosen in an effort to drive towards a win and 5 represents that cards were selected on mostly a vibes basis."
   scoring.options = [
-    { label = "0 - All cards chosen to drive towards a win", value = 0 },
-    { label = "1 - Minor vibes, mostly competitive", value = -0.5 },
-    { label = "2 - Some vibes, some competitive", value = -1.5 },
-    { label = "3 - Even split vibes/competitive", value = -3 },
+    { label = "0 - All cards chosen to drive towards a win", value = 17.5 },
+    { label = "1 - Minor vibes, mostly competitive", value = 10 },
+    { label = "2 - Some vibes, some competitive", value = 5 },
+    { label = "3 - Even split vibes/competitive", value = 0 },
     { label = "4 - Mostly vibes, little competitive", value = -5 },
     { label = "5 - Mostly/all vibes basis", value = -7 }
   ]
