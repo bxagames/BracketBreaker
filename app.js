@@ -302,6 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
             },
 
             renderMultiple(q) {
+                if (q.id === 'jank') { // <--- ADDED THIS DEBUG LOG
+                    console.log('Jank question options being rendered:', JSON.stringify(q.scoring.options));
+                }
                 const optionsHtml = q.scoring.options.map((opt, index) => `
                     <div class="multiple-choice-option">
                         <input type="radio" id="${q.id}-${index}" name="${q.id}" value="${opt.value}" ${index === q.scoring.options.length - 1 ? 'checked' : ''}>
@@ -373,22 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     App.elements.commanderNameDisplay.classList.add('hidden');
                 }
 
-                // Render Commander Name and Link
-                if (App.state.commanderName) {
-                    // Try a simpler Scryfall search query first
-                    const scryfallUrl = `https://scryfall.com/search?q=${encodeURIComponent(App.state.commanderName)}`; // Simpler search
-                    
-                    console.log('Generated Scryfall URL:', scryfallUrl); // Debug log
-                    
-                    App.elements.commanderNameDisplay.innerHTML = `Commander: <a href="${scryfallUrl}" target="_blank">${App.state.commanderName}</a>`;
-                    App.elements.commanderNameDisplay.classList.remove('hidden');
-
-                    console.log('Commander Name Display HTML:', App.elements.commanderNameDisplay.innerHTML); // Debug log
-                } else {
-                    App.elements.commanderNameDisplay.innerHTML = '';
-                    App.elements.commanderNameDisplay.classList.add('hidden');
-                }
-
                 // Render Deck Name and Link
                 console.log('App.state.deckName:', App.state.deckName); // Debug log
                 console.log('App.state.decklistLink:', App.state.decklistLink); // Debug log
@@ -423,11 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const thresholds = {
                         // Negative scoring
                         hateable: { low: -1, medium: -3, high: -5 },
-                        jank: { low: -1, medium: -3, high: -6 },
+                        // jank: { low: 16, medium: -1, high: -6 }, // Removed: Jank is now a multiplier, not a direct score
                         telegraphed: { low: -1, medium: -3, high: -5 },
                         // Positive scoring
                         stax: { low: 1, medium: 4, high: 6 },
-                        resilience: { low: 1, medium: 3, high: 5 },
+                        resilience: { low: 1, medium: 2, high: 5 },
                         combos: { low: 1, medium: 4, high: 7 },
                         extra_turns: { low: 1, medium: 4, high: 7 },
                     };
@@ -449,24 +436,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 const wrappedHtml = App.state.config.categories
-                    .sort((a,b) => (categoryTotals[b.tag] || 0) - (categoryTotals[a.tag] || 0))
+                    .sort((a,b) => {
+                        // Custom sort: put jank at a specific desired position if needed,
+                        // otherwise sort by total. For now, let's ensure it sorts consistently
+                        // by its score contribution as before (which is 0 now for jank, so might float).
+                        // Or, better, directly sort by value if jank was answered.
+                        // For simplicity, we'll keep the current sort and let jank be handled by the if statement.
+                        return (categoryTotals[b.tag] || 0) - (categoryTotals[a.tag] || 0);
+                    })
                     .reduce((html, cat) => {
                         let displayValue = '';
-                        const total = categoryTotals[cat.tag];
-                        const qualitativeCategories = ['hateable', 'jank', 'stax', 'resilience', 'combos', 'extra_turns', 'telegraphed'];
-                        
-                        if (qualitativeCategories.includes(cat.tag)) {
-                            displayValue = getQualitativeLevel(cat.tag, total);
+                        // Special handling for the 'jank' category because its score is now a multiplier
+                        if (cat.tag === 'jank') {
+                            // Parse the answer value, as it comes from the input as a string
+                            const jankAnswerValue = parseFloat(App.state.answers['jank']);
+                            
+                            console.log('Jank Answer Value (Parsed):', jankAnswerValue, typeof jankAnswerValue); // Debug Log
+                            
+                            if (jankAnswerValue !== undefined && !isNaN(jankAnswerValue)) {
+                                if (jankAnswerValue === 17.5) displayValue = 'None (Competitive)';
+                                else if (jankAnswerValue === 10) displayValue = 'Low';
+                                else if (jankAnswerValue === 5) displayValue = 'Medium-Low';
+                                else if (jankAnswerValue === 0) displayValue = 'Medium';
+                                else if (jankAnswerValue === -2) displayValue = 'Medium-High';
+                                else if (jankAnswerValue === -5) displayValue = 'High (Casual)';
+                                else displayValue = 'N/A'; // Fallback for unexpected values
+                            } else {
+                                displayValue = 'Not answered'; // Or default to 'None (Competitive)' if preferred
+                            }
                         } else {
-                            // Logic for count-based categories that don't need qualitative labels
-                            const associatedQuestions = App.state.config.questions.filter(q => q.tags && q.tags.includes(cat.tag));
-                             if (associatedQuestions.length > 0) {
-                                const answer = App.state.answers[associatedQuestions[0].id];
-                                if (answer) displayValue = answer.toString();
+                            const total = categoryTotals[cat.tag]; // Use category total for other categories
+                            const qualitativeCategories = ['hateable', 'stax', 'resilience', 'combos', 'extra_turns', 'telegraphed']; // 'jank' removed from this list
+                            
+                            if (qualitativeCategories.includes(cat.tag)) {
+                                displayValue = getQualitativeLevel(cat.tag, total);
+                            } else {
+                                // Logic for count-based categories that don't need qualitative labels
+                                const associatedQuestions = App.state.config.questions.filter(q => q.tags && q.tags.includes(cat.tag));
+                                 if (associatedQuestions.length > 0) {
+                                    const answer = App.state.answers[associatedQuestions[0].id];
+                                    if (answer) displayValue = answer.toString();
+                                }
                             }
                         }
 
-                        if (displayValue) {
+                        // Only display the card if there's a meaningful value
+                        if (displayValue && displayValue !== 'None' && displayValue !== 'Not answered') {
                             html += `
                                 <div class="category-card">
                                     <div class="icon">${cat.icon}</div>

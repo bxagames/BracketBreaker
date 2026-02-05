@@ -113,7 +113,7 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   name = "Combos"
   prompt = "How many distinct combos can the deck assemble?"
   description = "A combo is a set of cards that can win the game on the spot or create a deterministic lock."
-  scoring.weight_per = 3
+  scoring.weight_per = 6
   tags = ["combos"]
 
 [[questions]]
@@ -198,8 +198,8 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
     { label = "1 - Minor vibes, mostly competitive", value = 10 },
     { label = "2 - Some vibes, some competitive", value = 5 },
     { label = "3 - Even split vibes/competitive", value = 0 },
-    { label = "4 - Mostly vibes, little competitive", value = -5 },
-    { label = "5 - Mostly/all vibes basis", value = -7 }
+    { label = "4 - Mostly vibes, little competitive", value = -2 },
+    { label = "5 - Mostly/all vibes basis", value = -5 }
   ]
   tags = ["jank"]
 
@@ -245,7 +245,7 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   name = "Protection Spells"
   prompt = "How many protection spells are in the deck?"
   description = "e.g., Fog, Teferi's Protection, Heroic Intervention."
-  scoring.weight_per = 1.0
+  scoring.weight_per = 1.4
   tags = ["protection"]
 
 [[questions]]
@@ -263,5 +263,5 @@ subtitle = "A tool to help gauge the power level of your EDH deck."
   name = "Hate Pieces"
   prompt = "How many 'hate' pieces does your deck run?"
   description = "e.g., Bojuka Bog, Propaganda, Smothering Tithe. Cards that target specific strategies or are generally considered annoying."
-  scoring.weight_per = 1.2
+  scoring.weight_per = 1.5
   tags = ["hate_pieces"]
